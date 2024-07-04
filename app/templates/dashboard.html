@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+    <h1>Welcome, {{ current_user.username }}</h1>
+    <section class="wallet-list">
+        <h2>Your Wallets</h2>
+        {% if wallets %}
+            <ul>
+                {% for wallet in wallets %}
+                    <li>
+                        <a href="{{ url_for('main.wallet_detail', wallet_id=wallet.id) }}">
+                            {{ wallet.address }}
+                        </a>
+                        <span class="balance">Balance: {{ wallet.balance }} SOL</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>You haven't added any wallets yet.</p>
+        {% endif %}
+    </section>
+    <section class="add-wallet">
+        <h2>Add a New Wallet</h2>
+        <form action="{{ url_for('main.add_wallet') }}" method="post">
+            <input type="text" name="address" placeholder="Wallet Address" required>
+            <button type="submit">Add Wallet</button>
+        </form>
+    </section>
+{% endblock %}

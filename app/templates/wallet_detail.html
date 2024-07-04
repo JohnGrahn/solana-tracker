@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Wallet Details{% endblock %}
+
+{% block content %}
+    <h1>Wallet Details</h1>
+    <section class="wallet-info">
+        <h2>Address: {{ wallet.address }}</h2>
+        <p>Balance: {{ balance }} SOL</p>
+    </section>
+    <section class="transaction-history">
+        <h2>Transaction History</h2>
+        {% if transactions %}
+            <ul>
+                {% for transaction in transactions %}
+                    <li>
+                        <span class="transaction-signature">{{ transaction.signature }}</span>
+                        <span class="transaction-slot">Slot: {{ transaction.slot }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No transactions found for this wallet.</p>
+        {% endif %}
+    </section>
+{% endblock %}

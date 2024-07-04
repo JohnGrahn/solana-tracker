@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://user:password@db/solana_tracker
+      - SECRET_KEY=your-secret-key
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+    depends_on:
+      - db
+    volumes:
+      - ./app:/app/app
+    ports:
+      - "5000:5000"
+    
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  caddy:
+    build:
+      context: ./docker/caddy
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+
+  redis:
+    image: redis:6
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    command: celery -A app.celery worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://user:password@db/solana_tracker
+      - SECRET_KEY=your-secret-key
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - app
+      - db
+      - redis
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    command: celery -A app.celery beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://user:password@db/solana_tracker
+      - SECRET_KEY=your-secret-key
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - app
+      - db
+      - redis
+
+volumes:
+  postgres_data:
