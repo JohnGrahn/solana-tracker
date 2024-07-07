@@ -16,9 +16,6 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # Enable debug mode
-    app.config['DEBUG'] = True
-
     db.init_app(app)
     login_manager.init_app(app)
     socketio.init_app(app)
@@ -28,7 +25,8 @@ def create_app():
     from app import routes
     app.register_blueprint(routes.bp)
 
-    from app.models import User
+    from app.models import User, init_app as init_models
+    init_models(app)
 
     @login_manager.user_loader
     def load_user(user_id):

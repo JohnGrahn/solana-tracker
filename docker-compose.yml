@@ -13,9 +13,9 @@ services:
       - db
     volumes:
       - ./app:/app/app
+      - ./migrations:/app/migrations  # Add this line to persist migrations
     ports:
       - "5000:5000"
-    
 
   db:
     image: postgres:13
@@ -54,6 +54,8 @@ services:
       - app
       - db
       - redis
+    volumes:
+      - ./migrations:/app/migrations  # Add this line to persist migrations
 
   celery_beat:
     build:
@@ -70,6 +72,9 @@ services:
       - app
       - db
       - redis
+    volumes:
+      - ./migrations:/app/migrations  # Add this line to persist migrations
 
 volumes:
   postgres_data:
+  migrations_data:  # Add this line to create a named volume for migrations

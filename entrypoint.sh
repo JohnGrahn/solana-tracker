@@ -9,8 +9,8 @@ while ! pg_isready -h db -p 5432 > /dev/null 2>&1; do
 done
 echo "Database is ready!"
 
-# Check if migrations folder exists and is not empty
-if [ ! -d "migrations" ] || [ -z "$(ls -A migrations)" ]; then
+# Initialize migrations if they don't exist
+if [ ! -f "migrations/alembic.ini" ]; then
   echo "Initializing migrations..."
   flask db init
   flask db migrate -m "Initial migration"

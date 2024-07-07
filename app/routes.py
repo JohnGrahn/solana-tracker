@@ -4,11 +4,12 @@ from app import db
 from app.models import User, Wallet
 from app.solana_api import get_wallet_balance, get_transaction_history
 from app import socketio
-
-from flask_socketio import join_room
-from flask_socketio import leave_room
-
+from flask_socketio import join_room, leave_room
 from werkzeug.security import generate_password_hash
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import make_transient
+from sqlalchemy.orm.session import Session
+
 
 bp = Blueprint('main', __name__)
 
@@ -26,10 +27,14 @@ def register():
         password = request.form['password']
         user = User(username=username, email=email)
         user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        flash('Registration successful. Please log in.')
-        return redirect(url_for('main.login'))
+        try:
+            db.session.add(user)
+            db.session.commit()
+            flash('Registration successful. Please log in.')
+            return redirect(url_for('main.login'))
+        except IntegrityError:
+            db.session.rollback()
+            flash('Username or email already exists. Please choose different ones.')
     return render_template('register.html')
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -48,25 +53,58 @@ def logout():
     logout_user()
     return redirect(url_for('main.index'))
 
+
 @bp.route('/add_wallet', methods=['POST'])
 @login_required
 def add_wallet():
     address = request.form['address']
-    wallet = Wallet(address=address, owner=current_user)
-    db.session.add(wallet)
-    db.session.commit()
-    flash('Wallet added successfully')
+    try:
+        # Create a new session
+        session = Session(db.engine)
+
+        # Check if the wallet already exists
+        wallet = session.query(Wallet).filter_by(address=address).first()
+        if not wallet:
+            wallet = Wallet(address=address)
+            session.add(wallet)
+        else:
+            # Detach the wallet from any previous session
+            session.expunge(wallet)
+            make_transient(wallet)
+            session.add(wallet)
+
+        # Check if the current user already has this wallet
+        user = session.merge(current_user)
+        if wallet not in user.wallets:
+            user.wallets.append(wallet)
+            session.commit()
+            flash('Wallet added successfully')
+        else:
+            flash('You are already tracking this wallet.')
+    except Exception as e:
+        session.rollback()
+        flash(f'Error adding wallet: {str(e)}')
+    finally:
+        session.close()
     return redirect(url_for('main.index'))
+
+
+
 
 @bp.route('/wallet/<int:wallet_id>')
 @login_required
 def wallet_detail(wallet_id):
     wallet = Wallet.query.get_or_404(wallet_id)
-    if wallet.owner != current_user:
+    if wallet not in current_user.wallets:
         flash('Access denied')
         return redirect(url_for('main.index'))
-    balance = get_wallet_balance(wallet.address)
-    transactions = get_transaction_history(wallet.address)
+    try:
+        balance = get_wallet_balance(wallet.address)
+        transactions = get_transaction_history(wallet.address)
+    except Exception as e:
+        flash(f'Error fetching wallet details: {str(e)}')
+        balance = None
+        transactions = []
     return render_template('wallet_detail.html', wallet=wallet, balance=balance, transactions=transactions)
 
 @socketio.on('connect')
@@ -80,8 +118,9 @@ def handle_disconnect():
         leave_room(current_user.id)
 
 def emit_wallet_update(wallet):
-    socketio.emit('wallet_update', {
-        'id': wallet.id,
-        'address': wallet.address,
-        'balance': wallet.balance
-    }, room=wallet.owner.id)
+    for user in wallet.users:
+        socketio.emit('wallet_update', {
+            'id': wallet.id,
+            'address': wallet.address,
+            'balance': wallet.balance
+        }, room=user.id)
