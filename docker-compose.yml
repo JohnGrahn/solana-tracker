@@ -9,11 +9,14 @@ services:
       - DATABASE_URL=postgresql://user:password@db/solana_tracker
       - SECRET_KEY=your-secret-key
       - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - db
+      - redis
     volumes:
       - ./app:/app/app
-      - ./migrations:/app/migrations  # Add this line to persist migrations
+      - ./migrations:/app/migrations
     ports:
       - "5000:5000"
 
@@ -43,7 +46,7 @@ services:
     build:
       context: .
       dockerfile: docker/app/Dockerfile
-    command: celery -A app.celery worker --loglevel=info
+    command: celery -A celery_app.celery worker --loglevel=info
     environment:
       - DATABASE_URL=postgresql://user:password@db/solana_tracker
       - SECRET_KEY=your-secret-key
@@ -55,13 +58,14 @@ services:
       - db
       - redis
     volumes:
-      - ./migrations:/app/migrations  # Add this line to persist migrations
+      - ./app:/app/app
+      - ./migrations:/app/migrations
 
   celery_beat:
     build:
       context: .
       dockerfile: docker/app/Dockerfile
-    command: celery -A app.celery beat --loglevel=info
+    command: celery -A celery_app.celery beat --loglevel=info
     environment:
       - DATABASE_URL=postgresql://user:password@db/solana_tracker
       - SECRET_KEY=your-secret-key
@@ -73,8 +77,9 @@ services:
       - db
       - redis
     volumes:
-      - ./migrations:/app/migrations  # Add this line to persist migrations
+      - ./app:/app/app
+      - ./migrations:/app/migrations
 
 volumes:
   postgres_data:
-  migrations_data:  # Add this line to create a named volume for migrations
+  migrations_data:

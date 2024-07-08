@@ -10,7 +10,7 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 socketio = SocketIO()
 migrate = Migrate()
-celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
+celery = Celery()
 
 def create_app():
     app = Flask(__name__)
@@ -20,18 +20,33 @@ def create_app():
     login_manager.init_app(app)
     socketio.init_app(app)
     migrate.init_app(app, db)
+
     celery.conf.update(app.config)
+    celery.conf.update(
+        broker_url=app.config['CELERY_BROKER_URL'],
+        result_backend=app.config['CELERY_RESULT_BACKEND']
+    )
 
-    from app import routes
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery.Task = ContextTask
+
+    from app import routes, models, tasks
     app.register_blueprint(routes.bp)
-
-    from app.models import User, init_app as init_models
-    init_models(app)
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        return models.User.query.get(int(user_id))
 
     login_manager.login_view = 'main.login'
 
     return app
+
+def init_celery(app=None):
+    if app is None:
+        app = create_app()
+    celery.conf.update(app.config)
+    return celery

@@ -20,6 +20,12 @@ fi
 echo "Running database migrations..."
 flask db upgrade
 
-# Start the application
-echo "Starting the application..."
+# Check if we should start the Celery worker
+if [ "${START_CELERY_WORKER}" = "true" ]; then
+  echo "Starting Celery worker..."
+  celery -A celery_worker.celery worker --loglevel=info &
+fi
+
+# Start the Flask application
+echo "Starting the Flask application..."
 exec gunicorn --bind 0.0.0.0:${PORT:-5000} "${APP_MODULE:-run:app}"

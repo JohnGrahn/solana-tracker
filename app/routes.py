@@ -9,7 +9,7 @@ from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import make_transient
 from sqlalchemy.orm.session import Session
-
+from app.tasks import update_wallet_balances, add_wallet  # Added this import
 
 bp = Blueprint('main', __name__)
 
@@ -17,6 +17,7 @@ bp = Blueprint('main', __name__)
 @bp.route('/index')
 @login_required
 def index():
+    update_wallet_balances.delay()
     return render_template('dashboard.html', wallets=current_user.wallets)
 
 @bp.route('/register', methods=['GET', 'POST'])
@@ -53,43 +54,13 @@ def logout():
     logout_user()
     return redirect(url_for('main.index'))
 
-
 @bp.route('/add_wallet', methods=['POST'])
 @login_required
-def add_wallet():
+def add_wallet_route():
     address = request.form['address']
-    try:
-        # Create a new session
-        session = Session(db.engine)
-
-        # Check if the wallet already exists
-        wallet = session.query(Wallet).filter_by(address=address).first()
-        if not wallet:
-            wallet = Wallet(address=address)
-            session.add(wallet)
-        else:
-            # Detach the wallet from any previous session
-            session.expunge(wallet)
-            make_transient(wallet)
-            session.add(wallet)
-
-        # Check if the current user already has this wallet
-        user = session.merge(current_user)
-        if wallet not in user.wallets:
-            user.wallets.append(wallet)
-            session.commit()
-            flash('Wallet added successfully')
-        else:
-            flash('You are already tracking this wallet.')
-    except Exception as e:
-        session.rollback()
-        flash(f'Error adding wallet: {str(e)}')
-    finally:
-        session.close()
+    add_wallet.delay(current_user.id, address)
+    flash('Wallet is being added and balance fetched. It will appear soon.')
     return redirect(url_for('main.index'))
-
-
-
 
 @bp.route('/wallet/<int:wallet_id>')
 @login_required
@@ -110,17 +81,11 @@ def wallet_detail(wallet_id):
 @socketio.on('connect')
 def handle_connect():
     if current_user.is_authenticated:
-        join_room(current_user.id)
+        for wallet in current_user.wallets:
+            join_room(f'wallet_{wallet.id}')
 
 @socketio.on('disconnect')
 def handle_disconnect():
     if current_user.is_authenticated:
-        leave_room(current_user.id)
-
-def emit_wallet_update(wallet):
-    for user in wallet.users:
-        socketio.emit('wallet_update', {
-            'id': wallet.id,
-            'address': wallet.address,
-            'balance': wallet.balance
-        }, room=user.id)
+        for wallet in current_user.wallets:
+            leave_room(f'wallet_{wallet.id}')
