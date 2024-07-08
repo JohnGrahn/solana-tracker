@@ -18,7 +18,9 @@ bp = Blueprint('main', __name__)
 @login_required
 def index():
     update_wallet_balances.delay()
-    return render_template('dashboard.html', wallets=current_user.wallets)
+    fresh_user = db.session.query(User).options(db.joinedload(User.wallets)).get(current_user.id)
+    return render_template('dashboard.html', wallets=fresh_user.wallets)
+
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -58,9 +60,13 @@ def logout():
 @login_required
 def add_wallet_route():
     address = request.form['address']
-    add_wallet.delay(current_user.id, address)
-    flash('Wallet is being added and balance fetched. It will appear soon.')
+    wallet_id = add_wallet.delay(current_user.id, address).get()
+    if wallet_id:
+        flash('Wallet has been added and balance fetched.')
+    else:
+        flash('Error adding wallet. Please try again.')
     return redirect(url_for('main.index'))
+
 
 @bp.route('/wallet/<int:wallet_id>')
 @login_required
