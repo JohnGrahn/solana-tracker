@@ -10,17 +10,17 @@
             <ul>
                 {% for wallet in wallets %}
                     <li>
-                        <a href="{{ url_for('main.wallet_detail', wallet_id=wallet.id) }}">
+                        <a href="{{ url_for('main.wallet_detail', wallet_id=wallet.id) }}" class="wallet-address">
                             {{ wallet.address }}
                         </a>
-                        <span class="balance">Balance: {{ wallet.balance|round(4) }} SOL</span>
+                        <span class="balance">{{ wallet.balance|round(4) }} SOL</span>
                     </li>
                 {% endfor %}
             </ul>
         {% else %}
             <p>You haven't added any wallets yet.</p>
         {% endif %}
-    </section>
+    </section>    
     <section class="add-wallet">
         <h2>Add a New Wallet</h2>
         <form action="{{ url_for('main.add_wallet_route') }}" method="post">
