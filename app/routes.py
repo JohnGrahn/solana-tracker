@@ -10,6 +10,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import make_transient
 from sqlalchemy.orm.session import Session
 from app.tasks import update_wallet_balances, add_wallet  # Added this import
+from app.helius_api import get_detailed_transactions, get_token_balances, get_wallet_info
+
 
 bp = Blueprint('main', __name__)
 
@@ -76,13 +78,19 @@ def wallet_detail(wallet_id):
         flash('Access denied')
         return redirect(url_for('main.index'))
     try:
-        balance = get_wallet_balance(wallet.address)
-        transactions = get_transaction_history(wallet.address)
+        balance = wallet.balance
+        detailed_transactions = get_detailed_transactions(wallet.address)
+        token_balances = get_token_balances(wallet.address)
+        wallet_info = get_wallet_info(wallet.address)
     except Exception as e:
         flash(f'Error fetching wallet details: {str(e)}')
         balance = None
-        transactions = []
-    return render_template('wallet_detail.html', wallet=wallet, balance=balance, transactions=transactions)
+        detailed_transactions = []
+        token_balances = []
+        wallet_info = {}
+    return render_template('wallet_detail.html', wallet=wallet, balance=balance, 
+                           transactions=detailed_transactions, token_balances=token_balances, 
+                           wallet_info=wallet_info)
 
 @socketio.on('connect')
 def handle_connect():

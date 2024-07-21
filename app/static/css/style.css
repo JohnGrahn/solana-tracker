@@ -159,3 +159,43 @@ footer {
         grid-template-columns: repeat(3, 1fr);
     }
 }
+
+/* Add these styles to improve readability */
+.wallet-info, .token-balances, .transaction-history {
+    margin-bottom: 2rem;
+}
+
+.token-balances ul, .transaction-history ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.token-balances li, .transaction-history li {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.token-name, .transaction-type {
+    font-weight: bold;
+}
+
+.token-symbol, .transaction-signature {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.token-balance, .token-price, .token-value,
+.transaction-amount, .transaction-balance-before, .transaction-balance-after {
+    display: block;
+    margin-top: 0.25rem;
+}
+
+.transaction-timestamp {
+    font-size: 0.9em;
+    color: #6c757d;
+    display: block;
+    margin-top: 0.25rem;
+}

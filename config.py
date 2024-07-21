@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key'
@@ -7,3 +10,5 @@ class Config:
     SOLANA_RPC_URL = os.environ.get('SOLANA_RPC_URL') or 'https://api.mainnet-beta.solana.com'
     CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL') or 'redis://redis:6379/0'
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND') or 'redis://redis:6379/0'
+    HELIUS_API_KEY = os.environ.get('HELIUS_API_KEY')
+    HELIUS_API_URL = os.environ.get('HELIUS_API_URL')

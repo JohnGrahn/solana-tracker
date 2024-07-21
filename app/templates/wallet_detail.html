@@ -7,15 +7,44 @@
     <section class="wallet-info">
         <h2>Address: {{ wallet.address }}</h2>
         <p>Balance: {{ balance }} SOL</p>
+        {% for key, value in wallet_info.items() %}
+            <p>{{ key }}: {{ value }}</p>
+        {% endfor %}
     </section>
+    
+    <section class="token-balances">
+        <h2>Token Balances</h2>
+        {% if token_balances %}
+            <ul>
+                {% for token in token_balances %}
+                    <li>
+                        <span class="token-name">{{ token.name }}</span>
+                        <span class="token-symbol">({{ token.symbol }})</span>
+                        <span class="token-balance">Balance: {{ "%.4f"|format(token.balance) }}</span>
+                        {% if token.price %}
+                            <span class="token-price">Price: ${{ "%.2f"|format(token.price) }}</span>
+                            <span class="token-value">Value: ${{ "%.2f"|format(token.value) }}</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No token balances found for this wallet.</p>
+        {% endif %}
+    </section>
+    
     <section class="transaction-history">
         <h2>Transaction History</h2>
         {% if transactions %}
             <ul>
                 {% for transaction in transactions %}
                     <li>
+                        <span class="transaction-type">{{ transaction.type }}</span>
+                        <span class="transaction-amount">Amount: {{ "%.9f"|format(transaction.amount) }} SOL</span>
+                        <span class="transaction-balance-before">Balance Before: {{ "%.9f"|format(transaction.balance_before) }} SOL</span>
+                        <span class="transaction-balance-after">Balance After: {{ "%.9f"|format(transaction.balance_after) }} SOL</span>
+                        <span class="transaction-timestamp">{{ transaction.timestamp }}</span>
                         <span class="transaction-signature">{{ transaction.signature }}</span>
-                        <span class="transaction-slot">Slot: {{ transaction.slot }}</span>
                     </li>
                 {% endfor %}
             </ul>

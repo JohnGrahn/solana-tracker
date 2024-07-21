@@ -10,7 +10,7 @@ user_wallets = db.Table('user_wallets',
 )
 
 class User(UserMixin, db.Model):
-    __tablename__ = 'users'  # Explicitly set the table name
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
@@ -27,11 +27,14 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
 
 class Wallet(db.Model):
-    __tablename__ = 'wallets'  # Explicitly set the table name
+    __tablename__ = 'wallets'
     id = db.Column(db.Integer, primary_key=True)
-    address = db.Column(db.String(44), index=True)  # Removed unique=True
+    address = db.Column(db.String(44), index=True)
     balance = db.Column(db.Float, default=0.0)
     users = db.relationship('User', secondary=user_wallets, back_populates='wallets')
+    transactions = db.Column(db.JSON)
+    token_balances = db.Column(db.JSON)
+    additional_info = db.Column(db.JSON)
 
     def __repr__(self):
         return f'<Wallet {self.address}>'
